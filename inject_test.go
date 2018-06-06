@@ -7,11 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/facebookgo/ensure"
-	"github.com/facebookgo/inject"
-
-	injecttesta "github.com/facebookgo/inject/injecttesta"
-	injecttestb "github.com/facebookgo/inject/injecttestb"
+	"github.com/bemobi/inject"
 )
 
 func init() {
@@ -189,14 +185,6 @@ func TestTagWithOpenQuote(t *testing.T) {
 	}
 }
 
-func TestProvideWithFields(t *testing.T) {
-	var g inject.Graph
-	a := &TypeAnswerStruct{}
-	err := g.Provide(&inject.Object{Value: a, Fields: map[string]*inject.Object{}})
-	ensure.NotNil(t, err)
-	ensure.DeepEqual(t, err.Error(), "fields were specified on object *inject_test.TypeAnswerStruct when it was provided")
-}
-
 func TestProvideNonPointer(t *testing.T) {
 	var g inject.Graph
 	var i int
@@ -238,7 +226,7 @@ func TestProvideTwoOfTheSame(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/bemobi/inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -251,7 +239,7 @@ func TestProvideTwoOfTheSameWithPopulate(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	const msg = "provided two unnamed instances of type *github.com/facebookgo/inject_test.TypeAnswerStruct"
+	const msg = "provided two unnamed instances of type *github.com/bemobi/inject_test.TypeAnswerStruct"
 	if err.Error() != msg {
 		t.Fatalf("expected:\n%s\nactual:\n%s", msg, err.Error())
 	}
@@ -821,64 +809,12 @@ type TypeForObjectString struct {
 	B *TypeNestedStruct `inject:""`
 }
 
-func TestObjectString(t *testing.T) {
-	var g inject.Graph
-	a := &TypeNestedStruct{}
-	if err := g.Provide(&inject.Object{Value: a, Name: "foo"}); err != nil {
-		t.Fatal(err)
-	}
-
-	var c TypeForObjectString
-	if err := g.Provide(&inject.Object{Value: &c}); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := g.Populate(); err != nil {
-		t.Fatal(err)
-	}
-
-	var actual []string
-	for _, o := range g.Objects() {
-		actual = append(actual, fmt.Sprint(o))
-	}
-
-	ensure.SameElements(t, actual, []string{
-		"*inject_test.TypeForObjectString",
-		"*inject_test.TypeNestedStruct",
-		"*inject_test.TypeNestedStruct named foo",
-		"*inject_test.TypeAnswerStruct",
-	})
-}
-
 type TypeForGraphObjects struct {
 	TypeNestedStruct `inject:"inline"`
 	A                *TypeNestedStruct `inject:"foo"`
 	E                struct {
 		B *TypeNestedStruct `inject:""`
 	} `inject:"inline"`
-}
-
-func TestGraphObjects(t *testing.T) {
-	var g inject.Graph
-	err := g.Provide(
-		&inject.Object{Value: &TypeNestedStruct{}, Name: "foo"},
-		&inject.Object{Value: &TypeForGraphObjects{}},
-	)
-	ensure.Nil(t, err)
-	ensure.Nil(t, g.Populate())
-
-	var actual []string
-	for _, o := range g.Objects() {
-		actual = append(actual, fmt.Sprint(o))
-	}
-
-	ensure.SameElements(t, actual, []string{
-		"*inject_test.TypeAnswerStruct",
-		"*inject_test.TypeForGraphObjects",
-		"*inject_test.TypeNestedStruct named foo",
-		"*inject_test.TypeNestedStruct",
-		`*struct { B *inject_test.TypeNestedStruct "inject:\"\"" }`,
-	})
 }
 
 type logger struct {
@@ -978,19 +914,5 @@ func TestForNamedWithUnnamed(t *testing.T) {
 	}
 	if v.TypeForNamedWithUnnamedDepFirst.TypeForNamedWithUnnamedDepSecond == nil {
 		t.Fatal("expected TypeForNamedWithUnnamedDepSecond to be populated")
-	}
-}
-
-func TestForSameNameButDifferentPackage(t *testing.T) {
-	var g inject.Graph
-	err := g.Provide(
-		&inject.Object{Value: &injecttesta.Foo{}},
-		&inject.Object{Value: &injecttestb.Foo{}},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := g.Populate(); err != nil {
-		t.Fatal(err)
 	}
 }
